@@ -51,7 +51,7 @@ class ProviderFactory:
         elif config.provider_type == "ollama":
             if not config.base_url:
                 return None
-            return OllamaProvider(name="ollama", base_url=config.base_url)
+            return OllamaProvider(name=config.name, base_url=config.base_url)
 
         return None
 

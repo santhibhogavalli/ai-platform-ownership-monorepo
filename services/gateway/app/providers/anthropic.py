@@ -16,7 +16,8 @@ class AnthropicProvider(BaseProvider):
         self.models = models or []
 
     def complete(self, prompt: str, max_tokens: int, model_name: str | None = None) -> dict[str, Any]:
-        client = ChatAnthropic(api_key=self.api_key, model_name=self.model_name, max_tokens=max_tokens)  # type: ignore
+        model = model_name or self.model_name
+        client = ChatAnthropic(api_key=self.api_key, model_name=model, max_tokens=max_tokens)  # type: ignore
         response = client.invoke([HumanMessage(content=prompt)])
         text = response.content if hasattr(response, "content") else str(response)
         input_tokens, output_tokens = self._extract_token_counts(response, prompt, text)

@@ -21,11 +21,15 @@ class BaseProvider(ABC):
         pass
 
     def _extract_token_counts(self, response: Any, prompt: str, text: str, input_field: str = "input_tokens", output_field: str = "output_tokens") -> tuple[int, int]:
-        """Extract token counts from response, with word-count fallback."""
+        """Extract token counts from response, with word-count fallback. Tries both provider-specific and standard field names."""
         usage = response.usage_metadata if hasattr(response, "usage_metadata") else None
         if isinstance(usage, dict):
-            input_tokens = usage.get(input_field, len(prompt.split()))
-            output_tokens = usage.get(output_field, len(text.split()))
+            input_tokens = usage.get(input_field) or usage.get("input_tokens")
+            output_tokens = usage.get(output_field) or usage.get("output_tokens")
+            if input_tokens is None:
+                input_tokens = len(prompt.split())
+            if output_tokens is None:
+                output_tokens = len(text.split())
         else:
             input_tokens = len(prompt.split())
             output_tokens = len(text.split())

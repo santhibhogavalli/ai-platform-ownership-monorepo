@@ -135,6 +135,13 @@ class ProviderRegistry:
                 last_error = e
                 continue
             except Exception as e:
+                try:
+                    import httpx
+                    if isinstance(e, httpx.ConnectError):
+                        last_error = e
+                        continue
+                except (ImportError, AttributeError):
+                    pass
                 raise
 
         raise RuntimeError(f"All providers failed. Last error: {last_error}")
