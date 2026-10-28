@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from app.providers.registry import ProviderRegistry
+from services.gateway.app.providers.registry import ProviderRegistry
 
 
 def main():

@@ -10,20 +10,16 @@ from .base import BaseProvider
 
 
 class GoogleProvider(BaseProvider):
-    def __init__(self, api_key: str, model_name: str = "gemini-1.5-flash"):
+    def __init__(self, api_key: str, model_name: str = "gemini-1.5-flash", models: list[dict] | None = None):
         super().__init__("google", model_name)
         self.api_key = api_key
-        self.input_cost = 0.075 / 1000000
-        self.output_cost = 0.3 / 1000000
+        self.models = models or []
 
-    def complete(self, prompt: str, max_tokens: int) -> dict[str, Any]:
+    def complete(self, prompt: str, max_tokens: int, model_name: str | None = None) -> dict[str, Any]:
         client = ChatGoogleGenerativeAI(api_key=self.api_key, model=self.model_name, max_tokens=max_tokens)  # type: ignore
         response = client.invoke([HumanMessage(content=prompt)])
         text = response.content if hasattr(response, "content") else str(response)
-        usage = response.usage_metadata if hasattr(response, "usage_metadata") else None
-
-        input_tokens = usage.get("input_tokens", 0) if isinstance(usage, dict) else 0
-        output_tokens = usage.get("output_tokens", 0) if isinstance(usage, dict) else 0
+        input_tokens, output_tokens = self._extract_token_counts(response, prompt, text)
 
         return {
             "text": text,
@@ -32,10 +28,12 @@ class GoogleProvider(BaseProvider):
         }
 
     def list_models(self) -> list[dict[str, Any]]:
+        if self.models:
+            return self.models
         return [
             {
                 "name": self.model_name,
-                "cost_per_input_token": self.input_cost,
-                "cost_per_output_token": self.output_cost,
+                "cost_per_input_token": 0.075 / 1000000,
+                "cost_per_output_token": 0.3 / 1000000,
             }
         ]

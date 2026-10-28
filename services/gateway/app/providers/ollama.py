@@ -21,7 +21,6 @@ class OllamaProvider(BaseProvider):
         self.name = name
         self.base_url = base_url.rstrip("/")
         self.timeout_s = timeout_s
-        self.client = ChatOllama(base_url=self.base_url, model="llama2")  # type: ignore
         self.available_models = {}
         self._load_available_models()
 
@@ -35,19 +34,22 @@ class OllamaProvider(BaseProvider):
         except OSError:
             pass
 
-    def complete(self, prompt: str, max_tokens: int) -> dict[str, Any]:
-        """Call Ollama. Note: Ollama doesn't provide token counts; estimate from prompt/response."""
+    def complete(self, prompt: str, max_tokens: int, model_name: str | None = None) -> dict[str, Any]:
+        """Call Ollama. Uses actual token counts from Ollama API when available."""
         from langchain_core.messages import HumanMessage
 
         if not self.available_models:
+            self._load_available_models()
+        if not self.available_models:
             raise RuntimeError("No models available on Ollama server")
 
-        first_model = next(iter(self.available_models.keys()))
-        client = ChatOllama(base_url=self.base_url, model=first_model, num_predict=max_tokens)  # type: ignore
+        model = model_name if model_name in self.available_models else next(iter(self.available_models.keys()))
+        client = ChatOllama(base_url=self.base_url, model=model, num_predict=max_tokens, timeout=self.timeout_s)  # type: ignore
         response = client.invoke([HumanMessage(content=prompt)])
         text = response.content if hasattr(response, "content") else str(response)
-        input_tokens = len(prompt.split())
-        output_tokens = len(text.split())
+
+        input_tokens, output_tokens = self._extract_token_counts(response, prompt, text, "prompt_eval_count", "eval_count")
+
         return {
             "text": text,
             "input_tokens": input_tokens,

@@ -1,6 +1,7 @@
 """Provider configuration: load from env vars and optional YAML."""
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
@@ -9,7 +10,7 @@ from dotenv import dotenv_values
 # Find .env file relative to project root (2 levels up from config.py)
 config_dir = Path(__file__).parent  # src/app
 env_file = config_dir.parent.parent / ".env"  # ../../.env
-env_vars = dotenv_values(env_file)
+env_vars = {**dotenv_values(env_file), **os.environ}
 
 @dataclass
 class ModelConfig:
@@ -69,11 +70,20 @@ def load_providers_from_env() -> list[ProviderConfig]:
 
     ollama_primary = env_vars.get("OLLAMA_PRIMARY_URL")
     if ollama_primary:
-        providers["ollama"] = ProviderConfig(
-            name="ollama",
+        providers["ollama-primary"] = ProviderConfig(
+            name="ollama-primary",
             provider_type="ollama",
             base_url=ollama_primary,
             # Models are empty because Ollama is intentionally different because it discovers models dynamically at runtime, not from static config
+            models=[],
+        )
+
+    ollama_backup = env_vars.get("OLLAMA_BACKUP_URL")
+    if ollama_backup:
+        providers["ollama-backup"] = ProviderConfig(
+            name="ollama-backup",
+            provider_type="ollama",
+            base_url=ollama_backup,
             models=[],
         )
 

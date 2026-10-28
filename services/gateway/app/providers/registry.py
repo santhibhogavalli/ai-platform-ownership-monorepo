@@ -1,11 +1,14 @@
 """Provider registry: load, select, and fallback across providers."""
 from __future__ import annotations
 
+import logging
 from typing import Any, Optional
 
 from ..config import ProviderConfig, load_providers_from_env
 from .base import BaseProvider
 from .factory import ProviderFactory
+
+logger = logging.getLogger(__name__)
 
 
 class ProviderRegistry:
@@ -36,9 +39,9 @@ class ProviderRegistry:
             try:
                 provider = self.factory.create_provider(config)
                 if provider:
-                    self.providers[config.provider_type] = provider
-            except Exception:
-                pass
+                    self.providers[config.name] = provider
+            except Exception as e:
+                logger.error(f"Failed to load provider '{config.name}': {e}")
 
     def list_all_models(self) -> list[dict[str, Any]]:
         """Return all models across all providers, sorted by cost (cheapest first)."""
@@ -101,7 +104,7 @@ class ProviderRegistry:
             provider = self.providers[provider_name]
 
             try:
-                completion = provider.complete(prompt, max_tokens)
+                completion = provider.complete(prompt, max_tokens, model_name)
                 input_tokens = completion["input_tokens"]
                 output_tokens = completion["output_tokens"]
                 input_cost = model_dict["cost_per_input_token"]
@@ -128,8 +131,10 @@ class ProviderRegistry:
                         "total_cost": total_cost,
                     },
                 }
-            except Exception as e:
+            except (TimeoutError, ConnectionError, RuntimeError) as e:
                 last_error = e
                 continue
+            except Exception as e:
+                raise
 
         raise RuntimeError(f"All providers failed. Last error: {last_error}")

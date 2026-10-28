@@ -38,13 +38,15 @@ class ProviderFactory:
             if not config.api_key:
                 return None
             model_name = config.models[0].name if config.models else "claude-3-5-sonnet"
-            return AnthropicProvider(api_key=config.api_key, model_name=model_name)
+            models = [{"name": m.name, "cost_per_input_token": m.cost_per_input_token, "cost_per_output_token": m.cost_per_output_token} for m in config.models] if config.models else []
+            return AnthropicProvider(api_key=config.api_key, model_name=model_name, models=models)
 
         elif config.provider_type == "google":
             if not config.api_key:
                 return None
             model_name = config.models[0].name if config.models else "gemini-1.5-flash"
-            return GoogleProvider(api_key=config.api_key, model_name=model_name)
+            models = [{"name": m.name, "cost_per_input_token": m.cost_per_input_token, "cost_per_output_token": m.cost_per_output_token} for m in config.models] if config.models else []
+            return GoogleProvider(api_key=config.api_key, model_name=model_name, models=models)
 
         elif config.provider_type == "ollama":
             if not config.base_url:
